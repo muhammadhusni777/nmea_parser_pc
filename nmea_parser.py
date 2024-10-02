@@ -35,7 +35,7 @@ with open(filename, 'a') as csvfile:
 
 
 def serial_ports():
-    
+   
     if sys.platform.startswith('win'):
         ports = ['COM%s' % (i + 1) for i in range(256)]
     elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
@@ -76,6 +76,7 @@ def gps_calc(num):
     global heading
     global message_time
     global message_time_prev
+    global knot
     while True:
         nmea_data = ser.readline().decode('utf-8', 'ignore').strip()
         if nmea_data.startswith('$GNRMC'):
@@ -85,7 +86,7 @@ def gps_calc(num):
             except:
                 pass
             #print(msg)
-            
+           
             if isinstance(msg, pynmea2.types.talker.RMC):
                 #print(f"Waktu: {msg.timestamp}")
                 #print(f"Status Perangkat: {msg.status}")
@@ -93,8 +94,8 @@ def gps_calc(num):
                     lat = float(msg.latitude)
                 except:
                     pass
-                
-                
+               
+               
                 print("")
                 try:
                     long = float(msg.longitude)
@@ -103,40 +104,40 @@ def gps_calc(num):
 
                 try:
                     knot = float(msg.spd_over_grnd)
-                    
+                   
                 except:
                     pass
 
-                
+               
                 try:
                     heading = int(msg.true_course)
                 except :
                     pass
-                
+               
                 #print(f"heading : {msg.true_course}  | ", heading)
                 print(f"latitude: ", lat, "longitude :", long)
-                
+               
                 lat_nmea_integer = int(lat)
                 lat_nmea_fractional = float(lat) - lat_nmea_integer
-                
-                
+               
+               
                 long_nmea_integer = int(long)
                 long_nmea_fractional = float(long) - long_nmea_integer
-                
+               
                 client.publish("lat_nmea_integer_pc", str(round(lat_nmea_integer,6)))
                 client.publish("lat_nmea_fractional_pc", str(round(lat_nmea_fractional,8)))
-                
+               
                 client.publish("long_nmea_integer_pc", str(round(long_nmea_integer,6)))
                 client.publish("long_nmea_fractional_pc", str(round(long_nmea_fractional,8)))
                 client.publish("speed_nmea", str(round(knot,2)))
-                
+               
                 '''
                 if (heading != "None"):
                     client.publish("yaw_actual", str((heading)))
                 '''
                 message_time = time.time() - message_time_prev
                 if (message_time > 1):
-                    
+                   
                     waktu = dt.datetime.now()
                     filename = str("GPS CALIB " ) + str(current_time.day)+str("-")+str(current_time.month)+str("-")+str(current_time.year) + str(".csv")
                     with open(filename, 'a') as csvfile:
@@ -144,14 +145,14 @@ def gps_calc(num):
                             rows = [ [str(str(waktu.hour) + str(":") + str(waktu.minute)+ str(":") + str(waktu.second)),str(lat),
                                     str(long) ]]
                             csvwriter.writerows(rows)
-                
-                    
-                    
+               
+                   
+                   
                     message_time_prev = time.time()
-                
+               
             else:
                 print("Tipe pesan NMEA tidak didukung.")
-            
+           
             if (day != day_prev):
                 filename = str("GPS CALIB " ) + str(current_time.day)+str("-")+str(current_time.month)+str("-")+str(current_time.year) + str(".csv")    
                 with open(filename, 'a') as csvfile:
@@ -159,7 +160,7 @@ def gps_calc(num):
                     csvwriter = csv.writer(csvfile)
                     # writing the fields
                     csvwriter.writerow(fields)
-            
+           
  
 def on_message(client, userdata, message):
     msg = str(message.payload.decode("utf-8"))
@@ -169,8 +170,8 @@ def on_message(client, userdata, message):
         val =  1
     else:
         val = (msg)
-        
-        
+       
+       
 if __name__ == "__main__":
     ##Mosquitto Mqtt Configuration
     client= paho.Client("NMEA_GPS_PC")
@@ -179,10 +180,9 @@ if __name__ == "__main__":
     print("connecting to broker ",broker)
     client.connect(broker,port)#connect
     print(broker," connected")
-    
+   
     client.loop_start()
     print("Subscribing")
-    
+   
     t1 = threading.Thread(target=gps_calc, args=(10,))
     t1.start()
-    
